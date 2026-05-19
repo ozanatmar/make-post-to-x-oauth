@@ -1,0 +1,600 @@
+{
+    "name": "make-post-to-x-oauth",
+    "flow": [
+        {
+            "id": 58,
+            "module": "util:SetVariables",
+            "version": 1,
+            "parameters": {},
+            "filter": null,
+            "mapper": {
+                "variables": [
+                    {
+                        "name": "consumerKey",
+                        "value": ""
+                    },
+                    {
+                        "name": "consumerSecret",
+                        "value": ""
+                    },
+                    {
+                        "name": "accessToken",
+                        "value": ""
+                    },
+                    {
+                        "name": "accessTokenSecret",
+                        "value": ""
+                    }
+                ],
+                "scope": "roundtrip"
+            },
+            "metadata": {
+                "designer": {
+                    "x": 347,
+                    "y": 600,
+                    "name": "set credentials"
+                },
+                "restore": {
+                    "expect": {
+                        "variables": {
+                            "items": [
+                                null,
+                                null,
+                                null,
+                                null
+                            ]
+                        },
+                        "scope": {
+                            "label": "One cycle"
+                        }
+                    }
+                },
+                "expect": [
+                    {
+                        "name": "variables",
+                        "type": "array",
+                        "label": "Variables",
+                        "spec": [
+                            {
+                                "name": "name",
+                                "label": "Variable name",
+                                "type": "text",
+                                "required": true
+                            },
+                            {
+                                "name": "value",
+                                "label": "Variable value",
+                                "type": "any"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "scope",
+                        "type": "select",
+                        "label": "Variable lifetime",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                "roundtrip",
+                                "execution"
+                            ]
+                        }
+                    }
+                ],
+                "interface": [
+                    {
+                        "name": "consumerKey",
+                        "label": "consumerKey",
+                        "type": "any"
+                    },
+                    {
+                        "name": "consumerSecret",
+                        "label": "consumerSecret",
+                        "type": "any"
+                    },
+                    {
+                        "name": "accessToken",
+                        "label": "accessToken",
+                        "type": "any"
+                    },
+                    {
+                        "name": "accessTokenSecret",
+                        "label": "accessTokenSecret",
+                        "type": "any"
+                    }
+                ]
+            }
+        },
+        {
+            "id": 53,
+            "module": "code:ExecuteCode",
+            "version": 1,
+            "parameters": {},
+            "mapper": {
+                "language": "javascript",
+                "input": [
+                    {
+                        "name": "method",
+                        "value": "POST"
+                    },
+                    {
+                        "name": "url",
+                        "value": "https://api.x.com/2/tweets"
+                    },
+                    {
+                        "name": "consumerKey",
+                        "value": "{{58.consumerKey}}"
+                    },
+                    {
+                        "name": "consumerSecret",
+                        "value": "{{58.consumerSecret}}"
+                    },
+                    {
+                        "name": "accessToken",
+                        "value": "{{58.accessToken}}"
+                    },
+                    {
+                        "name": "accessTokenSecret",
+                        "value": "{{58.accessTokenSecret}}"
+                    }
+                ],
+                "dependencies": [],
+                "inputFormat": "editor",
+                "codeEditorJavascript": "const crypto = require('crypto');\n\n// 1. Logs to confirm start\nconsole.log(\"Starting OAuth signature generation...\");\n\nconst { consumerKey } = input;\nconst { consumerSecret } = input;\nconst { accessToken } = input;\nconst { accessTokenSecret } = input;\n\nconst method = input.method || \"GET\";\nconst url = input.url; // exact URL without query string\nconst queryParams = input.queryParams ? JSON.parse(input.queryParams) : {};\n\nconst nonce = crypto.randomBytes(16).toString('hex');\nconst timestamp = Math.floor(Date.now() / 1000);\n\nconst params = {\n  ...queryParams,\n  oauth_consumer_key: consumerKey,\n  oauth_nonce: nonce,\n  oauth_signature_method: \"HMAC-SHA1\",\n  oauth_timestamp: String(timestamp),\n  oauth_token: accessToken,\n  oauth_version: \"1.0\",\n};\n\nconst sorted = Object.keys(params)\n  .sort()\n  .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`)\n  .join('&');\n\nconst baseString = `${method.toUpperCase()}&${encodeURIComponent(url)}&${encodeURIComponent(sorted)}`;\nconst signingKey = `${encodeURIComponent(consumerSecret)}&${encodeURIComponent(accessTokenSecret)}`;\n\nconst signature = crypto\n  .createHmac('sha1', signingKey)\n  .update(baseString)\n  .digest('base64');\n\nconst oauthParams = {\n  oauth_consumer_key: consumerKey,\n  oauth_nonce: nonce,\n  oauth_signature: signature,\n  oauth_signature_method: \"HMAC-SHA1\",\n  oauth_timestamp: String(timestamp),\n  oauth_token: accessToken,\n  oauth_version: \"1.0\",\n};\n\nconst authHeader = \"OAuth \" + Object.keys(oauthParams)\n  .sort()\n  .map(k => `${encodeURIComponent(k)}=\"${encodeURIComponent(oauthParams[k])}\"`)\n  .join(\", \");\n\nconst finalUrl =\n  Object.keys(queryParams).length > 0\n    ? url + \"?\" + Object.keys(queryParams)\n        .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(queryParams[k])}`)\n        .join(\"&\")\n    : url;\n\nreturn {\n  authHeader,\n  url: finalUrl\n};"
+            },
+            "metadata": {
+                "designer": {
+                    "x": 647,
+                    "y": 600,
+                    "name": "initiate conection"
+                },
+                "restore": {
+                    "expect": {
+                        "language": {
+                            "mode": "chose",
+                            "label": "JavaScript"
+                        },
+                        "input": {
+                            "items": [
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null
+                            ]
+                        },
+                        "inputFormat": {
+                            "label": "Code editor"
+                        }
+                    }
+                },
+                "expect": [
+                    {
+                        "name": "language",
+                        "type": "select",
+                        "label": "Language",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                "javascript",
+                                "python"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "input",
+                        "type": "array",
+                        "label": "Input",
+                        "spec": {
+                            "type": "collection",
+                            "label": "Variable",
+                            "spec": [
+                                {
+                                    "name": "name",
+                                    "type": "text",
+                                    "required": true,
+                                    "validate": {
+                                        "pattern": "^[a-zA-Z0-9_]{1,32}$",
+                                        "min": 1,
+                                        "max": 32
+                                    },
+                                    "label": "Name"
+                                },
+                                {
+                                    "name": "value",
+                                    "type": "any",
+                                    "label": "Value"
+                                }
+                            ],
+                            "name": "value"
+                        }
+                    },
+                    {
+                        "name": "dependencies",
+                        "type": "array",
+                        "label": "Additional dependencies (Enterprise plans only)",
+                        "spec": {
+                            "type": "text",
+                            "required": true,
+                            "label": "Dependency",
+                            "validate": {
+                                "pattern": "^[A-Za-z0-9_@\\./<>=!~\\^+-]{1,214}$",
+                                "min": 1,
+                                "max": 214
+                            },
+                            "name": "value"
+                        }
+                    },
+                    {
+                        "name": "inputFormat",
+                        "type": "select",
+                        "label": "Input format",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                "editor",
+                                "string"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "codeEditorJavascript",
+                        "type": "editor",
+                        "label": "Code",
+                        "required": true
+                    }
+                ]
+            }
+        },
+        {
+            "id": 54,
+            "module": "http:MakeRequest",
+            "version": 4,
+            "parameters": {
+                "authenticationType": "noAuth",
+                "tlsType": "",
+                "proxyKeychain": ""
+            },
+            "mapper": {
+                "url": "{{53.result.url}}",
+                "method": "post",
+                "headers": [
+                    {
+                        "name": "Authorization",
+                        "value": "{{53.result.authHeader}}"
+                    }
+                ],
+                "contentType": "json",
+                "parseResponse": true,
+                "stopOnHttpError": true,
+                "allowRedirects": true,
+                "shareCookies": false,
+                "requestCompressedContent": true,
+                "inputMethod": "jsonString",
+                "jsonStringBodyContent": "{\r\n  \"text\": \"the post body\\n\\nwithout any line breaks\"\r\n}"
+            },
+            "metadata": {
+                "designer": {
+                    "x": 947,
+                    "y": 600,
+                    "name": "post"
+                },
+                "restore": {
+                    "parameters": {
+                        "authenticationType": {
+                            "label": "No authenticationUse when no credentials are required for the request."
+                        },
+                        "tlsType": {
+                            "label": "Empty"
+                        },
+                        "proxyKeychain": {
+                            "label": "Choose a key"
+                        }
+                    },
+                    "expect": {
+                        "method": {
+                            "mode": "chose",
+                            "label": "POST"
+                        },
+                        "headers": {
+                            "mode": "chose",
+                            "items": [
+                                null
+                            ]
+                        },
+                        "queryParameters": {
+                            "mode": "chose"
+                        },
+                        "contentType": {
+                            "label": "application/jsonEnter data in the JSON format, as a string or using a data structure."
+                        },
+                        "parseResponse": {
+                            "mode": "chose"
+                        },
+                        "stopOnHttpError": {
+                            "mode": "chose"
+                        },
+                        "allowRedirects": {
+                            "mode": "chose"
+                        },
+                        "shareCookies": {
+                            "mode": "chose"
+                        },
+                        "requestCompressedContent": {
+                            "mode": "chose"
+                        },
+                        "inputMethod": {
+                            "label": "JSON stringEnter the JSON body as a raw text string. If values contain JSON reserved characters, you must escape them manually."
+                        },
+                        "paginationType": {
+                            "label": "Empty"
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "authenticationType",
+                        "type": "select",
+                        "label": "Authentication type",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                "noAuth",
+                                "apiKey",
+                                "basicAuth",
+                                "oAuth"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "tlsType",
+                        "type": "select",
+                        "label": "Transport layer security (TLS)",
+                        "validate": {
+                            "enum": [
+                                "mTls",
+                                "tls"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "proxyKeychain",
+                        "type": "keychain:proxy",
+                        "label": "Proxy"
+                    }
+                ],
+                "expect": [
+                    {
+                        "name": "url",
+                        "type": "url",
+                        "label": "URL",
+                        "required": true
+                    },
+                    {
+                        "name": "method",
+                        "type": "select",
+                        "label": "Method",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                "get",
+                                "head",
+                                "post",
+                                "put",
+                                "patch",
+                                "delete",
+                                "options"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "headers",
+                        "type": "array",
+                        "label": "Headers",
+                        "spec": {
+                            "name": "value",
+                            "label": "Header",
+                            "type": "collection",
+                            "spec": [
+                                {
+                                    "name": "name",
+                                    "label": "Name",
+                                    "type": "text",
+                                    "required": true,
+                                    "validate": {
+                                        "pattern": "^[-!#$%&'*+.^_`|~0-9A-Za-z]+$"
+                                    }
+                                },
+                                {
+                                    "name": "value",
+                                    "label": "Value",
+                                    "type": "text"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "queryParameters",
+                        "type": "array",
+                        "label": "Query parameters",
+                        "spec": {
+                            "name": "value",
+                            "label": "Parameter",
+                            "type": "collection",
+                            "spec": [
+                                {
+                                    "name": "name",
+                                    "label": "Name",
+                                    "type": "text",
+                                    "required": true
+                                },
+                                {
+                                    "name": "value",
+                                    "label": "Value",
+                                    "type": "text"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "contentType",
+                        "type": "select",
+                        "label": "Body content type",
+                        "validate": {
+                            "enum": [
+                                "json",
+                                "multipart",
+                                "urlEncoded",
+                                "custom"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "parseResponse",
+                        "type": "boolean",
+                        "label": "Parse response",
+                        "required": true
+                    },
+                    {
+                        "name": "stopOnHttpError",
+                        "type": "boolean",
+                        "label": "Return error if HTTP request fails",
+                        "required": true
+                    },
+                    {
+                        "name": "timeout",
+                        "type": "uinteger",
+                        "label": "Timeout",
+                        "validate": {
+                            "min": 1,
+                            "max": 300
+                        }
+                    },
+                    {
+                        "name": "allowRedirects",
+                        "type": "boolean",
+                        "label": "Allow redirects",
+                        "required": true
+                    },
+                    {
+                        "name": "shareCookies",
+                        "type": "boolean",
+                        "label": "Share cookies with other HTTP modules",
+                        "required": true
+                    },
+                    {
+                        "name": "requestCompressedContent",
+                        "type": "boolean",
+                        "label": "Request compressed content",
+                        "required": true
+                    },
+                    {
+                        "name": "inputMethod",
+                        "type": "select",
+                        "label": "Body input method",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                "dataStructure",
+                                "jsonString"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "jsonStringBodyContent",
+                        "type": "text",
+                        "label": "Body content",
+                        "required": true
+                    },
+                    {
+                        "name": "paginationType",
+                        "type": "select",
+                        "label": "Pagination type",
+                        "validate": {
+                            "enum": [
+                                "offsetBased",
+                                "pageBased",
+                                "urlBased",
+                                "tokenBased"
+                            ]
+                        }
+                    }
+                ],
+                "interface": [
+                    {
+                        "name": "data",
+                        "label": "Data",
+                        "type": "any"
+                    },
+                    {
+                        "name": "statusCode",
+                        "label": "Status Code",
+                        "type": "number"
+                    },
+                    {
+                        "name": "headers",
+                        "label": "Headers",
+                        "type": "collection",
+                        "spec": [
+                            {
+                                "name": "content-length",
+                                "label": "Content-Length",
+                                "type": "text"
+                            },
+                            {
+                                "name": "content-encoding",
+                                "label": "Content-Encoding",
+                                "type": "text"
+                            },
+                            {
+                                "name": "content-type",
+                                "label": "Content-Type",
+                                "type": "text"
+                            },
+                            {
+                                "name": "server",
+                                "label": "Server",
+                                "type": "text"
+                            },
+                            {
+                                "name": "cache-control",
+                                "label": "Cache-Control",
+                                "type": "text"
+                            },
+                            {
+                                "name": "set-cookie",
+                                "label": "Set-Cookie",
+                                "type": "array",
+                                "spec": {
+                                    "type": "text"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+    ],
+    "metadata": {
+        "instant": false,
+        "version": 1,
+        "scenario": {
+            "roundtrips": 1,
+            "maxErrors": 3,
+            "autoCommit": true,
+            "autoCommitTriggerLast": true,
+            "sequential": false,
+            "slots": null,
+            "confidential": false,
+            "dataloss": false,
+            "dlq": false,
+            "freshVariables": false
+        },
+        "designer": {
+            "orphans": []
+        },
+        "zone": "eu2.make.com",
+        "notes": []
+    }
+}
