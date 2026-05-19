@@ -39,5 +39,5 @@ This template skips it entirely. Bring your own X API credentials
 
 ## Built by Ozan Atmar
 I build Make automations for founders.  
-Site: https://ozan.atmar.bg  
-Email: ozanatmar@atmar.bg
+Site: https://ozan.at/mar  
+Email: ozanatmar@gmail.com
